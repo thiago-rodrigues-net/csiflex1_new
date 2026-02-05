@@ -2,6 +2,7 @@ using CSIFlex.Domain.Entities.Authentication;
 using CSIFlex.Domain.Interfaces.Repositories;
 using CSIFlex.Infrastructure.Data;
 using Dapper;
+using Microsoft.Extensions.Logging;
 
 namespace CSIFlex.Infrastructure.Repositories;
 
@@ -11,14 +12,20 @@ namespace CSIFlex.Infrastructure.Repositories;
 public class UserRepository : IUserRepository
 {
     private readonly DatabaseContext _context;
+    private readonly ILogger<UserRepository> _logger;
 
-    public UserRepository(DatabaseContext context)
+    public UserRepository(DatabaseContext context, ILogger<UserRepository> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        
+        _logger.LogDebug("UserRepository inicializado");
     }
 
     public async Task<User?> GetByUserNameAsync(string userName)
     {
+        _logger.LogDebug("Buscando usuário por nome: {UserName}", userName);
+        
         const string sql = @"
             SELECT 
                 username_ AS UserName,
@@ -39,11 +46,18 @@ public class UserRepository : IUserRepository
             FROM csi_auth.users
             WHERE username_ = @UserName";
 
-        using var connection = await _context.CreateConnectionAsync();
-        var result = await connection.QueryFirstOrDefaultAsync<UserDto>(sql, new { UserName = userName });
+        try
+        {
+            using var connection = await _context.CreateConnectionAsync();
+            var result = await connection.QueryFirstOrDefaultAsync<UserDto>(sql, new { UserName = userName });
 
-        if (result == null)
-            return null;
+            if (result == null)
+            {
+                _logger.LogDebug("Usuário não encontrado: {UserName}", userName);
+                return null;
+            }
+            
+            _logger.LogDebug("Usuário encontrado: {UserName}", userName);
 
         return User.Reconstruct(
             result.UserName,
@@ -62,6 +76,12 @@ public class UserRepository : IUserRepository
             result.EditTimeline,
             result.EditPartNumber
         );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao buscar usuário: {UserName}", userName);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<User>> GetAllAsync()

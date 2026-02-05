@@ -212,4 +212,6 @@ appsettings.Local.json
 publish/
 wwwroot/uploads/
 Logs/
-logs/
+logs/*.log
+logs/errors/*.log
+!logs/.gitkeep

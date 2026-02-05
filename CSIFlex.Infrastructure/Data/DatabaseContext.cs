@@ -1,5 +1,6 @@
 using System.Data;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using MySql.Data.MySqlClient;
 
 namespace CSIFlex.Infrastructure.Data;
@@ -10,10 +11,14 @@ namespace CSIFlex.Infrastructure.Data;
 public class DatabaseContext
 {
     private readonly IConfiguration _configuration;
+    private readonly ILogger<DatabaseContext> _logger;
 
-    public DatabaseContext(IConfiguration configuration)
+    public DatabaseContext(IConfiguration configuration, ILogger<DatabaseContext> logger)
     {
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        
+        _logger.LogDebug("DatabaseContext inicializado");
     }
 
     /// <summary>
@@ -36,15 +41,27 @@ public class DatabaseContext
     /// </summary>
     public async Task<MySqlConnection> CreateConnectionAsync()
     {
+        _logger.LogDebug("Criando conexão assíncrona com o banco de dados");
+        
         var connectionString = _configuration.GetConnectionString("DefaultConnection");
         
         if (string.IsNullOrWhiteSpace(connectionString))
         {
+            _logger.LogError("Connection string 'DefaultConnection' não encontrada no appsettings.json");
             throw new InvalidOperationException("Connection string 'DefaultConnection' não encontrada no appsettings.json");
         }
 
-        var connection = new MySqlConnection(connectionString);
-        await connection.OpenAsync();
-        return connection;
+        try
+        {
+            var connection = new MySqlConnection(connectionString);
+            await connection.OpenAsync();
+            _logger.LogDebug("Conexão com o banco de dados estabelecida com sucesso");
+            return connection;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao conectar ao banco de dados");
+            throw;
+        }
     }
 }

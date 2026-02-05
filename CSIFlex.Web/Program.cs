@@ -7,59 +7,121 @@ using CSIFlex.Infrastructure.Data;
 using CSIFlex.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Serilog;
+using Serilog.Events;
 
-var builder = WebApplication.CreateBuilder(args);
+// Configurar Serilog antes de criar o builder
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
-// Configuração do Kestrel
-builder.WebHost.ConfigureKestrel(serverOptions =>
+try
 {
-    serverOptions.ListenAnyIP(5000); // HTTP
-    serverOptions.ListenAnyIP(5001, listenOptions =>
+    Log.Information("===========================================");
+    Log.Information("Iniciando CSIFLEX Server Application");
+    Log.Information("===========================================");
+
+    var builder = WebApplication.CreateBuilder(args);
+
+    // Configurar Serilog a partir do appsettings.json
+    builder.Host.UseSerilog((context, services, configuration) => configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext()
+        .Enrich.WithMachineName()
+        .Enrich.WithThreadId());
+
+    // Configuração do Kestrel via appsettings.json
+    builder.WebHost.UseKestrel((context, serverOptions) =>
     {
-        listenOptions.UseHttps(); // HTTPS
+        serverOptions.Configure(context.Configuration.GetSection("Kestrel"));
     });
-});
 
-// Add services to the container.
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    Log.Information("Configurando serviços da aplicação...");
 
-// Configuração de autenticação
-builder.Services.AddAuthorizationCore();
-builder.Services.AddCascadingAuthenticationState();
-builder.Services.AddScoped<ProtectedSessionStorage>();
-builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
+    // Add services to the container.
+    builder.Services.AddRazorComponents()
+        .AddInteractiveServerComponents();
 
-// Configuração de Database Context
-builder.Services.AddSingleton<DatabaseContext>();
+    // Configuração de autenticação
+    builder.Services.AddAuthorizationCore();
+    builder.Services.AddCascadingAuthenticationState();
+    builder.Services.AddScoped<ProtectedSessionStorage>();
+    builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
 
-// Configuração de Repositórios
-builder.Services.AddScoped<IUserRepository, UserRepository>();
+    // Configuração de Database Context
+    builder.Services.AddScoped<DatabaseContext>();
 
-// Configuração de Serviços
-builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
-builder.Services.AddScoped<AuthenticationService>();
+    // Configuração de Repositórios
+    builder.Services.AddScoped<IUserRepository, UserRepository>();
 
-var app = builder.Build();
+    // Configuração de Serviços
+    builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+    builder.Services.AddScoped<AuthenticationService>();
 
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+    Log.Information("Serviços configurados com sucesso");
+
+    var app = builder.Build();
+
+    // Configurar Serilog para requisições HTTP
+    app.UseSerilogRequestLogging(options =>
+    {
+        options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} respondeu {StatusCode} em {Elapsed:0.0000} ms";
+        options.GetLevel = (httpContext, elapsed, ex) => ex != null
+            ? LogEventLevel.Error
+            : elapsed > 5000
+                ? LogEventLevel.Warning
+                : LogEventLevel.Information;
+    });
+
+    Log.Information("Configurando pipeline HTTP...");
+
+    // Configure the HTTP request pipeline.
+    if (!app.Environment.IsDevelopment())
+    {
+        app.UseExceptionHandler("/Error", createScopeForErrors: true);
+        app.UseHsts();
+        Log.Information("Ambiente de produção detectado - HSTS habilitado");
+    }
+    else
+    {
+        Log.Information("Ambiente de desenvolvimento detectado");
+    }
+
+    // Redirecionar HTTP para HTTPS apenas em produção
+    if (!app.Environment.IsDevelopment())
+    {
+        app.UseHttpsRedirection();
+        Log.Information("Redirecionamento HTTPS habilitado");
+    }
+
+    app.UseStaticFiles();
+    app.UseAntiforgery();
+
+    app.MapRazorComponents<App>()
+        .AddInteractiveServerRenderMode();
+
+    Log.Information("Pipeline HTTP configurado com sucesso");
+    Log.Information("===========================================");
+    Log.Information("CSIFLEX Server iniciado e pronto para receber requisições");
+    Log.Information("Ambiente: {Environment}", app.Environment.EnvironmentName);
+    Log.Information("URLs: Verifique as configurações do Kestrel no appsettings.json");
+    Log.Information("===========================================");
+
+    app.Run();
 }
-
-// Redirecionar HTTP para HTTPS apenas em produção
-if (!app.Environment.IsDevelopment())
+catch (Exception ex)
 {
-    app.UseHttpsRedirection();
+    Log.Fatal(ex, "Aplicação terminou inesperadamente devido a um erro fatal");
+    throw;
 }
-
-app.UseStaticFiles();
-app.UseAntiforgery();
-
-app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
-
-app.Run();
+finally
+{
+    Log.Information("===========================================");
+    Log.Information("Encerrando CSIFLEX Server Application");
+    Log.Information("===========================================");
+    Log.CloseAndFlush();
+}

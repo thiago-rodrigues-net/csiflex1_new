@@ -1,0 +1,36 @@
+[Unit]
+Description=CSIFLEX Server Application
+Documentation=https://github.com/thiago-rodrigues-net/csiflex1_new
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+# Altere o caminho abaixo para o diretório onde o projeto está instalado
+WorkingDirectory=/opt/csiflex/CSIFlex.Web
+ExecStart=/usr/bin/dotnet /opt/csiflex/CSIFlex.Web/CSIFlex.Web.dll
+
+# Reiniciar automaticamente em caso de falha
+Restart=always
+RestartSec=10
+KillSignal=SIGINT
+
+# Configurações de ambiente
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
+Environment=ASPNETCORE_URLS=http://0.0.0.0:5000;https://0.0.0.0:5001
+
+# Usuário e grupo (altere conforme necessário)
+User=www-data
+Group=www-data
+
+# Logging
+SyslogIdentifier=csiflex-server
+StandardOutput=journal
+StandardError=journal
+
+# Limites de recursos
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

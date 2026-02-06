@@ -1,0 +1,414 @@
+@page "/users/edit/{UserId:int}"
+@using CSIFlex.Application.DTOs
+@using CSIFlex.Domain.Entities.Authentication
+@using CSIFlex.Domain.Interfaces.Services
+@inject IUserService UserService
+@inject NavigationManager Navigation
+@inject ILogger<UserEdit> Logger
+
+<PageTitle>Editar Usuário - CSIFLEX</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/users">Usuários</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Editar Usuário</li>
+                </ol>
+            </nav>
+            <h2><i class="bi bi-pencil-fill me-2"></i>Editar Usuário</h2>
+            <p class="text-muted">Atualize os dados do usuário</p>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="mt-3 text-muted">Carregando dados do usuário...</p>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Erro!</strong> @errorMessage
+            <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+        </div>
+    }
+    else if (model != null)
+    {
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <EditForm Model="@model" OnValidSubmit="HandleSubmit">
+                    <DataAnnotationsValidator />
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nome de Usuário</label>
+                            <input type="text" class="form-control" value="@originalUserName" disabled />
+                            <small class="form-text text-muted">O nome de usuário não pode ser alterado</small>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">E-mail <span class="text-danger">*</span></label>
+                            <InputText @bind-Value="model.Email" type="email" class="form-control" placeholder="usuario@exemplo.com" />
+                            <ValidationMessage For="@(() => model.Email)" class="text-danger" />
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nome <span class="text-danger">*</span></label>
+                            <InputText @bind-Value="model.FirstName" class="form-control" placeholder="Digite o nome" />
+                            <ValidationMessage For="@(() => model.FirstName)" class="text-danger" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Sobrenome <span class="text-danger">*</span></label>
+                            <InputText @bind-Value="model.LastName" class="form-control" placeholder="Digite o sobrenome" />
+                            <ValidationMessage For="@(() => model.LastName)" class="text-danger" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nome de Exibição</label>
+                            <InputText @bind-Value="model.DisplayName" class="form-control" placeholder="Nome que será exibido" />
+                            <ValidationMessage For="@(() => model.DisplayName)" class="text-danger" />
+                            <small class="form-text text-muted">Se vazio, será gerado automaticamente</small>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tipo de Usuário <span class="text-danger">*</span></label>
+                            <InputSelect @bind-Value="model.UserType" class="form-select">
+                                <option value="user">Usuário</option>
+                                <option value="admin">Administrador</option>
+                                <option value="programer">Programador</option>
+                            </InputSelect>
+                            <ValidationMessage For="@(() => model.UserType)" class="text-danger" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Departamento</label>
+                            <InputText @bind-Value="model.Dept" class="form-control" placeholder="Ex: Produção" />
+                            <ValidationMessage For="@(() => model.Dept)" class="text-danger" />
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Cargo</label>
+                            <InputText @bind-Value="model.Title" class="form-control" placeholder="Ex: Supervisor" />
+                            <ValidationMessage For="@(() => model.Title)" class="text-danger" />
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Ramal</label>
+                            <InputText @bind-Value="model.PhoneExt" class="form-control" placeholder="Ex: 1234" />
+                            <ValidationMessage For="@(() => model.PhoneExt)" class="text-danger" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Máquinas</label>
+                            <InputTextArea @bind-Value="model.Machines" class="form-control" rows="3" 
+                                           placeholder="Lista de máquinas separadas por vírgula" />
+                            <ValidationMessage For="@(() => model.Machines)" class="text-danger" />
+                            <small class="form-text text-muted">Separe os nomes das máquinas por vírgula</small>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check">
+                                <InputCheckbox @bind-Value="model.EditTimeline" class="form-check-input" id="editTimeline" />
+                                <label class="form-check-label" for="editTimeline">
+                                    Permitir editar linha do tempo
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check">
+                                <InputCheckbox @bind-Value="model.EditPartNumber" class="form-check-input" id="editPartNumber" />
+                                <label class="form-check-label" for="editPartNumber">
+                                    Permitir editar dados de peças
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <button type="button" class="btn btn-secondary me-2" @onclick="Cancel">
+                                <i class="bi bi-x-circle me-2"></i>Cancelar
+                            </button>
+                            <button type="button" class="btn btn-warning" @onclick="ShowChangePassword">
+                                <i class="bi bi-key-fill me-2"></i>Alterar Senha
+                            </button>
+                        </div>
+                        <button type="submit" class="btn btn-primary" disabled="@saving">
+                            @if (saving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                <span>Salvando...</span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-check-circle me-2"></i>
+                                <span>Salvar Alterações</span>
+                            }
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+</div>
+
+@if (showPasswordModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-key-fill me-2"></i>
+                        Alterar Senha
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="ClosePasswordModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="@passwordModel" OnValidSubmit="HandlePasswordChange">
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+                            <label class="form-label">Nova Senha <span class="text-danger">*</span></label>
+                            <InputText @bind-Value="passwordModel.NewPassword" type="password" class="form-control" />
+                            <ValidationMessage For="@(() => passwordModel.NewPassword)" class="text-danger" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Confirmar Nova Senha <span class="text-danger">*</span></label>
+                            <InputText @bind-Value="passwordModel.ConfirmNewPassword" type="password" class="form-control" />
+                            <ValidationMessage For="@(() => passwordModel.ConfirmNewPassword)" class="text-danger" />
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(passwordErrorMessage))
+                        {
+                            <div class="alert alert-danger">
+                                @passwordErrorMessage
+                            </div>
+                        }
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" @onclick="ClosePasswordModal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary" disabled="@changingPassword">
+                                @if (changingPassword)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    <span>Alterando...</span>
+                                }
+                                else
+                                {
+                                    <span>Alterar Senha</span>
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int UserId { get; set; }
+
+    private UpdateUserDto? model;
+    private string originalUserName = string.Empty;
+    private bool loading = true;
+    private bool saving = false;
+    private string errorMessage = string.Empty;
+    private bool showPasswordModal = false;
+    private ResetPasswordDto passwordModel = new();
+    private string passwordErrorMessage = string.Empty;
+    private bool changingPassword = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUser();
+    }
+
+    private async Task LoadUser()
+    {
+        try
+        {
+            loading = true;
+            errorMessage = string.Empty;
+            Logger.LogInformation("Carregando usuário: ID {UserId}", UserId);
+
+            var user = await UserService.GetUserByIdAsync(UserId);
+
+            if (user == null)
+            {
+                errorMessage = "Usuário não encontrado.";
+                return;
+            }
+
+            originalUserName = user.UserName;
+            model = new UpdateUserDto
+            {
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                DisplayName = user.DisplayName,
+                Email = user.Email,
+                UserType = user.UserType,
+                Dept = user.Dept,
+                Title = user.Title,
+                PhoneExt = user.PhoneExt,
+                Machines = user.Machines,
+                EditTimeline = user.EditTimeline,
+                EditPartNumber = user.EditPartNumber,
+                IsActive = true
+            };
+
+            Logger.LogInformation("Usuário carregado: {UserName}", user.UserName);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Erro ao carregar usuário: ID {UserId}", UserId);
+            errorMessage = "Erro ao carregar os dados do usuário. Por favor, tente novamente.";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (model == null) return;
+
+        try
+        {
+            saving = true;
+            errorMessage = string.Empty;
+            Logger.LogInformation("Atualizando usuário: ID {UserId}", UserId);
+
+            var user = await UserService.GetUserByIdAsync(UserId);
+            if (user == null)
+            {
+                errorMessage = "Usuário não encontrado.";
+                return;
+            }
+
+            user.FirstName = model.FirstName;
+            user.LastName = model.LastName;
+            user.DisplayName = model.DisplayName;
+            user.Email = model.Email;
+            user.UserType = model.UserType;
+            user.Dept = model.Dept;
+            user.Title = model.Title;
+            user.PhoneExt = model.PhoneExt;
+            user.Machines = model.Machines;
+            user.EditTimeline = model.EditTimeline;
+            user.EditPartNumber = model.EditPartNumber;
+
+            await UserService.UpdateUserAsync(user);
+
+            Logger.LogInformation("Usuário atualizado com sucesso: ID {UserId}", UserId);
+            Navigation.NavigateTo("/users");
+        }
+        catch (InvalidOperationException ex)
+        {
+            Logger.LogWarning(ex, "Erro de validação ao atualizar usuário: ID {UserId}", UserId);
+            errorMessage = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Erro ao atualizar usuário: ID {UserId}", UserId);
+            errorMessage = "Erro ao atualizar o usuário. Por favor, tente novamente.";
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private void ShowChangePassword()
+    {
+        passwordModel = new ResetPasswordDto { UserId = UserId };
+        passwordErrorMessage = string.Empty;
+        showPasswordModal = true;
+    }
+
+    private void ClosePasswordModal()
+    {
+        showPasswordModal = false;
+        passwordModel = new();
+        passwordErrorMessage = string.Empty;
+    }
+
+    private async Task HandlePasswordChange()
+    {
+        try
+        {
+            changingPassword = true;
+            passwordErrorMessage = string.Empty;
+            Logger.LogInformation("Alterando senha do usuário: ID {UserId}", UserId);
+
+            var success = await UserService.ResetPasswordAsync(UserId, passwordModel.NewPassword);
+
+            if (success)
+            {
+                Logger.LogInformation("Senha alterada com sucesso: ID {UserId}", UserId);
+                ClosePasswordModal();
+            }
+            else
+            {
+                passwordErrorMessage = "Não foi possível alterar a senha. Por favor, tente novamente.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Erro ao alterar senha: ID {UserId}", UserId);
+            passwordErrorMessage = "Erro ao alterar a senha. Por favor, tente novamente.";
+        }
+        finally
+        {
+            changingPassword = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/users");
+    }
+
+    private class ResetPasswordDto
+    {
+        public int UserId { get; set; }
+
+        [Required(ErrorMessage = "Nova senha é obrigatória")]
+        [StringLength(100, MinimumLength = 6, ErrorMessage = "Nova senha deve ter no mínimo 6 caracteres")]
+        public string NewPassword { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Confirmação de senha é obrigatória")]
+        [Compare("NewPassword", ErrorMessage = "As senhas não coincidem")]
+        public string ConfirmNewPassword { get; set; } = string.Empty;
+    }
+}

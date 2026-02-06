@@ -1,51 +1,42 @@
 namespace CSIFlex.Domain.Entities.Authentication;
 
-/// <summary>
-/// Entidade de domínio que representa um usuário do sistema CSIFLEX
-/// </summary>
 public class User
 {
-    public string UserName { get; private set; }
-    public string PasswordHash { get; private set; }
-    public string Salt { get; private set; }
-    public string FirstName { get; private set; }
-    public string LastName { get; private set; }
-    public string DisplayName { get; private set; }
-    public string Email { get; private set; }
-    public string UserType { get; private set; }
-    public string RefId { get; private set; }
-    public string Title { get; private set; }
-    public string Dept { get; private set; }
-    public string Machines { get; private set; }
-    public string PhoneExt { get; private set; }
-    public bool EditTimeline { get; private set; }
-    public bool EditPartNumber { get; private set; }
+    public int Id { get; set; }
+    public string UserName { get; set; } = string.Empty;
+    public string PasswordHash { get; set; } = string.Empty;
+    public string Salt { get; set; } = string.Empty;
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string UserType { get; set; } = "user";
+    public string RefId { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Dept { get; set; } = string.Empty;
+    public string Machines { get; set; } = string.Empty;
+    public string PhoneExt { get; set; } = string.Empty;
+    public bool EditTimeline { get; set; }
+    public bool EditPartNumber { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsActive { get; set; } = true;
 
-    /// <summary>
-    /// Verifica se o usuário é administrador
-    /// </summary>
-    public bool IsAdmin => UserType?.ToLower() == "admin";
+    public bool IsAdmin => UserType?.Equals("admin", StringComparison.OrdinalIgnoreCase) ?? false;
 
-    /// <summary>
-    /// Construtor privado para garantir que a entidade seja criada apenas através de métodos factory
-    /// </summary>
-    private User() { }
+    public User()
+    {
+    }
 
-    /// <summary>
-    /// Factory method para criar um novo usuário
-    /// </summary>
-    public static User Create(
+    public User(
         string userName,
-        string passwordHash,
-        string salt,
         string firstName,
         string lastName,
         string displayName,
         string email,
         string userType,
-        string refId = "",
-        string title = "",
         string dept = "",
+        string title = "",
         string machines = "",
         string phoneExt = "",
         bool editTimeline = false,
@@ -54,35 +45,32 @@ public class User
         if (string.IsNullOrWhiteSpace(userName))
             throw new ArgumentException("Nome de usuário não pode ser vazio", nameof(userName));
 
-        if (string.IsNullOrWhiteSpace(passwordHash))
-            throw new ArgumentException("Hash da senha não pode ser vazio", nameof(passwordHash));
+        if (string.IsNullOrWhiteSpace(firstName))
+            throw new ArgumentException("Nome não pode ser vazio", nameof(firstName));
 
-        if (string.IsNullOrWhiteSpace(salt))
-            throw new ArgumentException("Salt não pode ser vazio", nameof(salt));
+        if (string.IsNullOrWhiteSpace(lastName))
+            throw new ArgumentException("Sobrenome não pode ser vazio", nameof(lastName));
 
-        return new User
-        {
-            UserName = userName,
-            PasswordHash = passwordHash,
-            Salt = salt,
-            FirstName = firstName ?? string.Empty,
-            LastName = lastName ?? string.Empty,
-            DisplayName = displayName ?? string.Empty,
-            Email = email ?? string.Empty,
-            UserType = userType ?? "user",
-            RefId = refId ?? string.Empty,
-            Title = title ?? string.Empty,
-            Dept = dept ?? string.Empty,
-            Machines = machines ?? string.Empty,
-            PhoneExt = phoneExt ?? string.Empty,
-            EditTimeline = editTimeline,
-            EditPartNumber = editPartNumber
-        };
+        if (string.IsNullOrWhiteSpace(email))
+            throw new ArgumentException("E-mail não pode ser vazio", nameof(email));
+
+        UserName = userName;
+        FirstName = firstName;
+        LastName = lastName;
+        DisplayName = string.IsNullOrWhiteSpace(displayName) ? $"{firstName} {lastName}" : displayName;
+        Email = email;
+        UserType = userType;
+        Dept = dept;
+        Title = title;
+        Machines = machines;
+        PhoneExt = phoneExt;
+        EditTimeline = editTimeline;
+        EditPartNumber = editPartNumber;
+        RefId = Guid.NewGuid().ToString();
+        CreatedAt = DateTime.Now;
+        IsActive = true;
     }
 
-    /// <summary>
-    /// Factory method para reconstruir um usuário a partir do banco de dados
-    /// </summary>
     public static User Reconstruct(
         string userName,
         string passwordHash,

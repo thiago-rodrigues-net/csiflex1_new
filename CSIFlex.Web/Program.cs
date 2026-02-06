@@ -61,6 +61,7 @@ try
     // Configuração de Serviços
     builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
     builder.Services.AddScoped<AuthenticationService>();
+    builder.Services.AddScoped<IUserService, UserService>();
 
     Log.Information("Serviços configurados com sucesso");
 

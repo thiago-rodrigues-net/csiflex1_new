@@ -205,7 +205,6 @@ public class AuthenticationService : IAuthenticationService
                     DisplayName = user.DisplayName,
                     Email = user.Email,
                     UserType = user.UserType,
-                    IsAdmin = user.IsAdmin,
                     Machines = user.Machines
                 }
             };

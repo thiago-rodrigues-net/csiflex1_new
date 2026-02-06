@@ -1,0 +1,233 @@
+@page "/users/create"
+@using CSIFlex.Application.DTOs
+@using CSIFlex.Domain.Entities.Authentication
+@using CSIFlex.Domain.Interfaces.Services
+@inject IUserService UserService
+@inject NavigationManager Navigation
+@inject ILogger<UserCreate> Logger
+
+<PageTitle>Novo Usuário - CSIFLEX</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/users">Usuários</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Novo Usuário</li>
+                </ol>
+            </nav>
+            <h2><i class="bi bi-person-plus-fill me-2"></i>Novo Usuário</h2>
+            <p class="text-muted">Preencha os dados para criar um novo usuário</p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Erro!</strong> @errorMessage
+            <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+        </div>
+    }
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <EditForm Model="@model" OnValidSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nome de Usuário <span class="text-danger">*</span></label>
+                        <InputText @bind-Value="model.UserName" class="form-control" placeholder="Digite o nome de usuário" />
+                        <ValidationMessage For="@(() => model.UserName)" class="text-danger" />
+                        <small class="form-text text-muted">Apenas letras, números e underscore</small>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">E-mail <span class="text-danger">*</span></label>
+                        <InputText @bind-Value="model.Email" type="email" class="form-control" placeholder="usuario@exemplo.com" />
+                        <ValidationMessage For="@(() => model.Email)" class="text-danger" />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Senha <span class="text-danger">*</span></label>
+                        <InputText @bind-Value="model.Password" type="password" class="form-control" placeholder="Digite a senha" />
+                        <ValidationMessage For="@(() => model.Password)" class="text-danger" />
+                        <small class="form-text text-muted">Mínimo de 6 caracteres</small>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Confirmar Senha <span class="text-danger">*</span></label>
+                        <InputText @bind-Value="model.ConfirmPassword" type="password" class="form-control" placeholder="Confirme a senha" />
+                        <ValidationMessage For="@(() => model.ConfirmPassword)" class="text-danger" />
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nome <span class="text-danger">*</span></label>
+                        <InputText @bind-Value="model.FirstName" class="form-control" placeholder="Digite o nome" />
+                        <ValidationMessage For="@(() => model.FirstName)" class="text-danger" />
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Sobrenome <span class="text-danger">*</span></label>
+                        <InputText @bind-Value="model.LastName" class="form-control" placeholder="Digite o sobrenome" />
+                        <ValidationMessage For="@(() => model.LastName)" class="text-danger" />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nome de Exibição</label>
+                        <InputText @bind-Value="model.DisplayName" class="form-control" placeholder="Nome que será exibido" />
+                        <ValidationMessage For="@(() => model.DisplayName)" class="text-danger" />
+                        <small class="form-text text-muted">Se vazio, será gerado automaticamente</small>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Tipo de Usuário <span class="text-danger">*</span></label>
+                        <InputSelect @bind-Value="model.UserType" class="form-select">
+                            <option value="user">Usuário</option>
+                            <option value="admin">Administrador</option>
+                            <option value="programer">Programador</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => model.UserType)" class="text-danger" />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Departamento</label>
+                        <InputText @bind-Value="model.Dept" class="form-control" placeholder="Ex: Produção" />
+                        <ValidationMessage For="@(() => model.Dept)" class="text-danger" />
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Cargo</label>
+                        <InputText @bind-Value="model.Title" class="form-control" placeholder="Ex: Supervisor" />
+                        <ValidationMessage For="@(() => model.Title)" class="text-danger" />
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Ramal</label>
+                        <InputText @bind-Value="model.PhoneExt" class="form-control" placeholder="Ex: 1234" />
+                        <ValidationMessage For="@(() => model.PhoneExt)" class="text-danger" />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Máquinas</label>
+                        <InputTextArea @bind-Value="model.Machines" class="form-control" rows="3" 
+                                       placeholder="Lista de máquinas separadas por vírgula" />
+                        <ValidationMessage For="@(() => model.Machines)" class="text-danger" />
+                        <small class="form-text text-muted">Separe os nomes das máquinas por vírgula</small>
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check">
+                            <InputCheckbox @bind-Value="model.EditTimeline" class="form-check-input" id="editTimeline" />
+                            <label class="form-check-label" for="editTimeline">
+                                Permitir editar linha do tempo
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check">
+                            <InputCheckbox @bind-Value="model.EditPartNumber" class="form-check-input" id="editPartNumber" />
+                            <label class="form-check-label" for="editPartNumber">
+                                Permitir editar dados de peças
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary" @onclick="Cancel">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary" disabled="@saving">
+                        @if (saving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            <span>Salvando...</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-check-circle me-2"></i>
+                            <span>Criar Usuário</span>
+                        }
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private CreateUserDto model = new() { UserType = "user" };
+    private bool saving = false;
+    private string errorMessage = string.Empty;
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            saving = true;
+            errorMessage = string.Empty;
+            Logger.LogInformation("Criando novo usuário: {UserName}", model.UserName);
+
+            var user = new User(
+                model.UserName,
+                model.FirstName,
+                model.LastName,
+                model.DisplayName,
+                model.Email,
+                model.UserType,
+                model.Dept,
+                model.Title,
+                model.Machines,
+                model.PhoneExt,
+                model.EditTimeline,
+                model.EditPartNumber
+            );
+
+            await UserService.CreateUserAsync(user, model.Password);
+
+            Logger.LogInformation("Usuário criado com sucesso: {UserName}", model.UserName);
+            Navigation.NavigateTo("/users");
+        }
+        catch (InvalidOperationException ex)
+        {
+            Logger.LogWarning(ex, "Erro de validação ao criar usuário: {UserName}", model.UserName);
+            errorMessage = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Erro ao criar usuário: {UserName}", model.UserName);
+            errorMessage = "Erro ao criar o usuário. Por favor, tente novamente.";
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/users");
+    }
+}
